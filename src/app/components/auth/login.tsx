@@ -88,7 +88,7 @@ export function Login({ onLogin, onSwitchToSignup }: LoginProps) {
 
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-a8139b1c/reset-password`,
+        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/reset-password`,
         {
           method: "POST",
           headers: {

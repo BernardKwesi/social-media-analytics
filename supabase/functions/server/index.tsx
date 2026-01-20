@@ -6,20 +6,28 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 const app = new Hono();
 
-// CORS (Supabase recommended pattern) - supports browser preflight requests
+// ✅ Proper CORS handling with correct preflight response
 app.use('*', async (c, next) => {
-  Object.entries(corsHeaders).forEach(([k, v]) => c.header(k, v));
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    c.header(key, value);
+  });
+
+  // Handle preflight requests properly
   if (c.req.method === 'OPTIONS') {
-    return c.text('ok', 200);
+    return c.body(null, 204);
   }
+
   await next();
 });
+
+// Logger after CORS so preflight isn't polluted
 app.use('*', logger(console.log));
+
 
 // Log environment setup (without exposing full keys)
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const hasServiceKey = !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-const hasAnonKey = !!Deno.env.get('SUPABASE_ANON_KEY');
+const hasAnonKey = !!Deno.env.get('VITE_SUPABASE_ANON_KEY');
 
 console.log('=== Supabase Configuration ===');
 console.log('URL:', supabaseUrl);
@@ -1404,11 +1412,11 @@ app.get('/make-server-a8139b1c/analytics/all', async (c) => {
           if (response.ok) {
             analyticsData[platform] = await response.json();
           } else {
-            analyticsData[platform] = { error: 'Failed to fetch', connected: true };
+            analyticsData[platform] = { error: 'Failed to fetch..', connected: true };
           }
         } catch (err) {
           console.log(`Error fetching ${platform} analytics:`, err);
-          analyticsData[platform] = { error: 'Failed to fetch', connected: true };
+          analyticsData[platform] = { error: 'Failed to fetch.....', connected: true };
         }
       } else {
         analyticsData[platform] = { connected: false };

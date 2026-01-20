@@ -89,7 +89,7 @@ export function ConnectAccounts({
     try {
       console.log("=== Testing Auth ===");
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-a8139b1c/test-auth`,
+        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/test-auth`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -137,7 +137,7 @@ export function ConnectAccounts({
   const loadOAuthStatus = async (token: string) => {
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-a8139b1c/oauth/status`,
+        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/oauth/status`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -355,7 +355,7 @@ export function ConnectAccounts({
 
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-a8139b1c/oauth/disconnect`,
+        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/oauth/disconnect`,
         {
           method: "POST",
           headers: {
