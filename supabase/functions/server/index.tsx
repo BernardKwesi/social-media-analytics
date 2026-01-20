@@ -1,12 +1,19 @@
 import { Hono } from 'npm:hono';
-import { cors } from 'npm:hono/cors';
 import { logger } from 'npm:hono/logger';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import * as kv from './kv_store.tsx';
+import { corsHeaders } from '../_shared/cors.ts';
 
 const app = new Hono();
 
-app.use('*', cors());
+// CORS (Supabase recommended pattern) - supports browser preflight requests
+app.use('*', async (c, next) => {
+  Object.entries(corsHeaders).forEach(([k, v]) => c.header(k, v));
+  if (c.req.method === 'OPTIONS') {
+    return c.text('ok', 200);
+  }
+  await next();
+});
 app.use('*', logger(console.log));
 
 // Log environment setup (without exposing full keys)
@@ -1552,6 +1559,12 @@ app.delete('/make-server-a8139b1c/delete-account', async (c) => {
     console.log('Delete account error:', err);
     return c.json({ error: 'Failed to delete account' }, 500);
   }
+});
+
+// Ensure even unmatched routes return CORS headers (helps preflight + browser errors)
+app.notFound((c) => {
+  Object.entries(corsHeaders).forEach(([k, v]) => c.header(k, v));
+  return c.json({ error: 'Not Found' }, 404);
 });
 
 Deno.serve(app.fetch);
