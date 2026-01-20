@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  BarChart3,
-  Mail,
-  Lock,
-  ArrowRight,
-  AlertCircle,
-} from "lucide-react";
+import { BarChart3, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
 import { projectId, publicAnonKey } from "@utils/supabase/info";
 import { useAuth } from "../../context/auth-context";
 
@@ -14,17 +8,13 @@ interface LoginProps {
   onSwitchToSignup: () => void;
 }
 
-export function Login({
-  onLogin,
-  onSwitchToSignup,
-}: LoginProps) {
+export function Login({ onLogin, onSwitchToSignup }: LoginProps) {
   const auth = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showResetPassword, setShowResetPassword] =
-    useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -47,9 +37,7 @@ export function Login({
       await auth.signInWithGoogle();
       // If we reach here without error, the redirect to Google is happening
       // Don't set loading to false - let the redirect happen
-      console.log(
-        "✅ signInWithGoogle() completed, should redirect...",
-      );
+      console.log("✅ signInWithGoogle() completed, should redirect...");
     } catch (err) {
       console.error("Google Sign-In error:", err);
       setError(
@@ -130,11 +118,7 @@ export function Login({
       );
     } catch (err) {
       console.error("Password reset error:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Password reset failed",
-      );
+      setError(err instanceof Error ? err.message : "Password reset failed");
     } finally {
       setResetLoading(false);
     }
@@ -169,8 +153,8 @@ export function Login({
 
               {resetSuccess && (
                 <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-                  Password reset successful! Please log in with
-                  your new password.
+                  Password reset successful! Please log in with your new
+                  password.
                 </div>
               )}
 
@@ -200,9 +184,7 @@ export function Login({
                   <input
                     type="password"
                     value={password}
-                    onChange={(e) =>
-                      setPassword(e.target.value)
-                    }
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="••••••••"
                     required
@@ -270,10 +252,7 @@ export function Login({
               )}
             </form>
           ) : (
-            <form
-              onSubmit={handleResetPassword}
-              className="space-y-4"
-            >
+            <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Reset Password
@@ -298,9 +277,7 @@ export function Login({
                   <input
                     type="email"
                     value={resetEmail}
-                    onChange={(e) =>
-                      setResetEmail(e.target.value)
-                    }
+                    onChange={(e) => setResetEmail(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="you@example.com"
                     required
@@ -317,9 +294,7 @@ export function Login({
                   <input
                     type="password"
                     value={newPassword}
-                    onChange={(e) =>
-                      setNewPassword(e.target.value)
-                    }
+                    onChange={(e) => setNewPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="••••••••"
                     required
@@ -344,9 +319,7 @@ export function Login({
                   disabled={resetLoading}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {resetLoading
-                    ? "Resetting..."
-                    : "Reset Password"}
+                  {resetLoading ? "Resetting..." : "Reset Password"}
                 </button>
               </div>
             </form>
@@ -365,12 +338,12 @@ export function Login({
         {/* Info Box */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800 font-medium mb-2">
-            🔐 Account Recovery
+            🔐 Account Recovery....
           </p>
           <p className="text-sm text-blue-700">
-            If you're seeing "Invalid login credentials", your
-            account exists but the password needs to be reset.
-            Click "Reset Password" above to regain access.
+            If you're seeing "Invalid login credentials", your account exists
+            but the password needs to be reset. Click "Reset Password" above to
+            regain access.
           </p>
         </div>
       </div>
