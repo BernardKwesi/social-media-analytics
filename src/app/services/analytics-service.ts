@@ -1,6 +1,6 @@
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 
-const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c`;
+const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/server`;
 
 export interface AnalyticsData {
   platform: string;

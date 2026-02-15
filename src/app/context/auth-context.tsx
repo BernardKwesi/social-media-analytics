@@ -111,10 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Fetch connected accounts
           try {
             const response = await fetch(
-              `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/connected-accounts`,
+              `https://${projectId}.supabase.co/functions/v1/server/connected-accounts`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
+                  apikey: publicAnonKey,
                 },
               },
             );
@@ -163,10 +164,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Fetch connected accounts (don't fail if backend is unavailable)
             try {
               const response = await fetch(
-                `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/connected-accounts`,
+                `https://${projectId}.supabase.co/functions/v1/server/connected-accounts`,
                 {
                   headers: {
                     Authorization: `Bearer ${token}`,
+                    apikey: publicAnonKey,
                   },
                 },
               );
@@ -226,10 +228,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Fetch connected accounts
           try {
             const response = await fetch(
-              `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/connected-accounts`,
+              `https://${projectId}.supabase.co/functions/v1/server/connected-accounts`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
+                  apikey: publicAnonKey,
                 },
               },
             );
@@ -290,10 +293,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Fetch connected accounts
         try {
           const response = await fetch(
-            `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/connected-accounts`,
+            `https://${projectId}.supabase.co/functions/v1/server/connected-accounts`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
+                apikey: publicAnonKey,
               },
             },
           );
@@ -315,12 +319,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (name: string, email: string, password: string) => {
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/signup`,
+        `https://${projectId}.supabase.co/functions/v1/server/signup`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${publicAnonKey}`,
+            apikey: publicAnonKey,
           },
           body: JSON.stringify({ name, email, password }),
         },

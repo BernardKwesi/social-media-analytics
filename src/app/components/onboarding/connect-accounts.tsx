@@ -27,9 +27,7 @@ interface SocialAccount {
   username?: string;
 }
 
-export function ConnectAccounts({
-  onComplete,
-}: ConnectAccountsProps) {
+export function ConnectAccounts({ onComplete }: ConnectAccountsProps) {
   const { accessToken, logout } = useAuth();
   const [accounts, setAccounts] = useState<SocialAccount[]>([
     {
@@ -89,21 +87,19 @@ export function ConnectAccounts({
     try {
       console.log("=== Testing Auth ===");
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/test-auth`,
+        `https://${projectId}.supabase.co/functions/v1/server/test-auth`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            apikey: publicAnonKey,
           },
         },
       );
 
-      console.log(
-        "Test auth response status:",
-        response.status,
-      );
+      console.log("Test auth response status:", response.status);
       const data = await response.json();
       console.log("Test auth response:", data);
-      
+
       // If test auth fails, try to refresh the session
       if (!response.ok) {
         console.warn("⚠️ Test auth failed, attempting to refresh session...");
@@ -113,17 +109,20 @@ export function ConnectAccounts({
       console.error("Test auth error:", error);
     }
   };
-  
+
   const refreshSession = async () => {
     try {
       console.log("🔄 Refreshing Supabase session...");
-      const { data: { session }, error } = await supabase.auth.refreshSession();
-      
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.refreshSession();
+
       if (error) {
         console.error("❌ Session refresh failed:", error);
         return;
       }
-      
+
       if (session?.access_token) {
         console.log("✅ Session refreshed successfully!");
         localStorage.setItem("access_token", session.access_token);
@@ -137,10 +136,11 @@ export function ConnectAccounts({
   const loadOAuthStatus = async (token: string) => {
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/oauth/status`,
+        `https://${projectId}.supabase.co/functions/v1/server/oauth/status`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            apikey: publicAnonKey,
           },
         },
       );
@@ -155,10 +155,7 @@ export function ConnectAccounts({
           })),
         );
       } else {
-        console.log(
-          "OAuth status endpoint returned:",
-          response.status,
-        );
+        console.log("OAuth status endpoint returned:", response.status);
       }
     } catch (error) {
       console.log(
@@ -178,24 +175,28 @@ export function ConnectAccounts({
     console.log("=== OAuth Initiation Debug ===");
     console.log("Account ID:", accountId);
     console.log("Access Token length:", accessToken.length);
-    console.log(
-      "Access Token preview:",
-      accessToken.substring(0, 30) + "...",
-    );
-    
+    console.log("Access Token preview:", accessToken.substring(0, 30) + "...");
+
     // Verify token is still valid before attempting OAuth
     console.log("🔍 Verifying token is still valid...");
     try {
-      const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser(accessToken);
       if (error || !user) {
         console.error("❌ Token is invalid or expired:", error);
-        alert("Your session has expired. Please refresh the page and log in again.");
+        alert(
+          "Your session has expired. Please refresh the page and log in again.",
+        );
         return;
       }
       console.log("✅ Token is valid for user:", user.email);
     } catch (err) {
       console.error("❌ Token validation failed:", err);
-      alert("Your session has expired. Please refresh the page and log in again.");
+      alert(
+        "Your session has expired. Please refresh the page and log in again.",
+      );
       return;
     }
 
@@ -207,15 +208,14 @@ export function ConnectAccounts({
 
     try {
       // Request OAuth URL from backend
-      const url = `https://${projectId}.supabase.co/functions/v1/make-server-a8139b1c/oauth/${accountId}/initiate`;
+      const url = `https://${projectId}.supabase.co/functions/v1/server/oauth/${accountId}/initiate`;
       console.log("OAuth initiation URL:", url);
-      console.log(
-        "Sending request with Authorization header...",
-      );
+      console.log("Sending request with Authorization header...");
 
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          apikey: publicAnonKey,
         },
       });
 
@@ -224,10 +224,7 @@ export function ConnectAccounts({
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(
-          `OAuth initiation failed for ${accountId}:`,
-          errorText,
-        );
+        console.error(`OAuth initiation failed for ${accountId}:`, errorText);
 
         let error;
         try {
@@ -237,9 +234,7 @@ export function ConnectAccounts({
         }
 
         console.error("Parsed error:", error);
-        throw new Error(
-          error.error || "Failed to initiate OAuth",
-        );
+        throw new Error(error.error || "Failed to initiate OAuth");
       }
 
       const { authUrl, state } = await response.json();
@@ -252,10 +247,8 @@ export function ConnectAccounts({
       // Open OAuth popup
       const width = 600;
       const height = 700;
-      const left =
-        window.screenX + (window.outerWidth - width) / 2;
-      const top =
-        window.screenY + (window.outerHeight - height) / 2;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
 
       const popup = window.open(
         authUrl,
@@ -286,18 +279,11 @@ export function ConnectAccounts({
           event.data.type === "oauth-error" &&
           event.data.platform === accountId
         ) {
-          console.error(
-            `OAuth error for ${accountId}:`,
-            event.data.error,
-          );
-          alert(
-            `Failed to connect ${accountId}: ${event.data.error}`,
-          );
+          console.error(`OAuth error for ${accountId}:`, event.data.error);
+          alert(`Failed to connect ${accountId}: ${event.data.error}`);
           setAccounts((prev) =>
             prev.map((acc) =>
-              acc.id === accountId
-                ? { ...acc, loading: false }
-                : acc,
+              acc.id === accountId ? { ...acc, loading: false } : acc,
             ),
           );
           window.removeEventListener("message", handleMessage);
@@ -308,9 +294,7 @@ export function ConnectAccounts({
 
       // Check if popup was blocked
       if (!popup || popup.closed) {
-        throw new Error(
-          "Popup blocked. Please allow popups for this site.",
-        );
+        throw new Error("Popup blocked. Please allow popups for this site.");
       }
 
       // Poll for popup close (in case user closes it)
@@ -319,9 +303,7 @@ export function ConnectAccounts({
           clearInterval(checkClosed);
           setAccounts((prev) =>
             prev.map((acc) =>
-              acc.id === accountId
-                ? { ...acc, loading: false }
-                : acc,
+              acc.id === accountId ? { ...acc, loading: false } : acc,
             ),
           );
           window.removeEventListener("message", handleMessage);
@@ -331,8 +313,7 @@ export function ConnectAccounts({
       console.error("OAuth error:", error);
 
       // Show more specific error messages
-      let errorMessage =
-        error.message || `Failed to connect ${accountId}`;
+      let errorMessage = error.message || `Failed to connect ${accountId}`;
 
       // Check if it's a configuration error
       if (errorMessage.includes("not configured")) {
@@ -342,9 +323,7 @@ export function ConnectAccounts({
       alert(errorMessage);
       setAccounts((prev) =>
         prev.map((acc) =>
-          acc.id === accountId
-            ? { ...acc, loading: false }
-            : acc,
+          acc.id === accountId ? { ...acc, loading: false } : acc,
         ),
       );
     }
@@ -355,11 +334,12 @@ export function ConnectAccounts({
 
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/oauth/disconnect`,
+        `https://${projectId}.supabase.co/functions/v1/server/oauth/disconnect`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
+            apikey: publicAnonKey,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ platform: accountId }),
@@ -396,9 +376,7 @@ export function ConnectAccounts({
     onComplete([]);
   };
 
-  const connectedCount = accounts.filter(
-    (acc) => acc.connected,
-  ).length;
+  const connectedCount = accounts.filter((acc) => acc.connected).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-4">
@@ -412,8 +390,7 @@ export function ConnectAccounts({
             Connect Your Social Accounts
           </h1>
           <p className="text-gray-600">
-            Link your social media accounts to start tracking
-            analytics
+            Link your social media accounts to start tracking analytics
           </p>
         </div>
 
@@ -477,16 +454,13 @@ export function ConnectAccounts({
                         <h3 className="font-semibold text-gray-900">
                           {account.name}
                         </h3>
-                        {account.connected &&
-                        account.username ? (
+                        {account.connected && account.username ? (
                           <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
                             <Check className="w-4 h-4" />
                             Connected as {account.username}
                           </p>
                         ) : (
-                          <p className="text-sm text-gray-600">
-                            Not connected
-                          </p>
+                          <p className="text-sm text-gray-600">Not connected</p>
                         )}
                       </div>
                     </div>
@@ -494,18 +468,14 @@ export function ConnectAccounts({
                     <div>
                       {account.connected ? (
                         <button
-                          onClick={() =>
-                            handleDisconnect(account.id)
-                          }
+                          onClick={() => handleDisconnect(account.id)}
                           className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
                         >
                           Disconnect
                         </button>
                       ) : (
                         <button
-                          onClick={() =>
-                            handleConnect(account.id)
-                          }
+                          onClick={() => handleConnect(account.id)}
                           disabled={account.loading}
                           className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-2"
                         >
@@ -534,9 +504,9 @@ export function ConnectAccounts({
                 Real OAuth Authentication
               </p>
               <p className="text-sm text-blue-700">
-                Click "Connect" to authenticate with each
-                platform. You'll be redirected to securely
-                authorize access to your social media data.
+                Click "Connect" to authenticate with each platform. You'll be
+                redirected to securely authorize access to your social media
+                data.
               </p>
             </div>
           </div>

@@ -73,7 +73,7 @@ export function ProfileSettings({ onClose }: ProfileSettingsProps) {
   const loadOAuthStatus = async (token: string) => {
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/oauth/status`,
+        `https://${projectId}.supabase.co/functions/v1/server/oauth/status`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -101,7 +101,7 @@ export function ProfileSettings({ onClose }: ProfileSettingsProps) {
 
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/update-profile`,
+        `https://${projectId}.supabase.co/functions/v1/server/update-profile`,
         {
           method: 'POST',
           headers: {
@@ -147,7 +147,7 @@ export function ProfileSettings({ onClose }: ProfileSettingsProps) {
 
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/change-password`,
+        `https://${projectId}.supabase.co/functions/v1/server/change-password`,
         {
           method: 'POST',
           headers: {
@@ -179,7 +179,7 @@ export function ProfileSettings({ onClose }: ProfileSettingsProps) {
 
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/oauth/${accountId}/initiate`,
+        `https://${projectId}.supabase.co/functions/v1/server/oauth/${accountId}/initiate`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -224,7 +224,7 @@ export function ProfileSettings({ onClose }: ProfileSettingsProps) {
 
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/oauth/disconnect`,
+        `https://${projectId}.supabase.co/functions/v1/server/oauth/disconnect`,
         {
           method: 'POST',
           headers: {
@@ -260,7 +260,7 @@ export function ProfileSettings({ onClose }: ProfileSettingsProps) {
 
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/server/make-server-a8139b1c/delete-account`,
+        `https://${projectId}.supabase.co/functions/v1/server/delete-account`,
         {
           method: 'DELETE',
           headers: {
