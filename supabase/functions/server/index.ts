@@ -675,10 +675,18 @@ app.get(`/server/oauth/twitter/initiate`, async (c) => {
     }
 
     const clientId = Deno.env.get("TWITTER_CLIENT_ID");
-    const redirectUri = `${Deno.env.get("PROJECT_URL")}/functions/v1/server/oauth/twitter/callback`;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const redirectUri = `${supabaseUrl}/functions/v1/server/oauth/twitter/callback`;
 
     if (!clientId) {
       return c.json({ error: "Twitter OAuth not configured" }, 500);
+    }
+    if (!supabaseUrl) {
+      console.error("Twitter OAuth: SUPABASE_URL is not set");
+      return c.json(
+        { error: "Server misconfiguration: SUPABASE_URL missing" },
+        500,
+      );
     }
 
     const state = crypto.randomUUID();
@@ -694,8 +702,14 @@ app.get(`/server/oauth/twitter/initiate`, async (c) => {
 
     return c.json({ authUrl, state });
   } catch (err) {
-    console.log("Twitter OAuth initiation error:", err);
-    return c.json({ error: "Failed to initiate Twitter OAuth" }, 500);
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error("Twitter OAuth initiation error:", message);
+    if (stack) console.error("Stack:", stack);
+    return c.json(
+      { error: "Failed to initiate Twitter OAuth", details: message },
+      500,
+    );
   }
 });
 
