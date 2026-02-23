@@ -29,9 +29,27 @@ app.use("*", async (c, next) => {
 app.use("*", logger(console.log));
 
 // Log environment setup (without exposing full keys)
-const supabaseUrl = Deno.env.get("PROJECT_URL");
+const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const hasServiceKey = !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const hasAnonKey = !!Deno.env.get("SUPABASE_ANON_KEY");
+const frontendUrl = Deno.env.get("FRONTEND_URL") ?? ""; // e.g. https://your-app.vercel.app or http://localhost:5174
+
+/** Redirect only (no postMessage). Builds frontend URL with oauth result in query params. */
+function oauthRedirectOnly(params: {
+  success: boolean;
+  platform: string;
+  username?: string;
+  error?: string;
+}): string {
+  if (!frontendUrl) return "window.close();";
+  const u = new URL(frontendUrl);
+  u.searchParams.set("oauth", params.success ? "success" : "error");
+  u.searchParams.set("platform", params.platform);
+  if (params.username != null) u.searchParams.set("username", params.username);
+  if (params.error != null) u.searchParams.set("error", params.error);
+  const url = u.toString();
+  return `window.location.href = ${JSON.stringify(url)};`;
+}
 
 console.log("=== Supabase Configuration ===");
 console.log("URL:", supabaseUrl);
@@ -124,7 +142,7 @@ async function getAuthenticatedUser(authHeader: string | undefined) {
 // Sign up handler (used by both /signup and /server/signup for Supabase path forwarding)
 const signupHandler = async (c: any) => {
   try {
-    console.log("PROJECT_URL", supabaseUrl);
+    console.log("SUPABASE_URL", supabaseUrl);
     console.log(
       "SERVICE_ROLE_KEY exists?",
       !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
@@ -184,7 +202,7 @@ const signupHandler = async (c: any) => {
 
     try {
       const supabaseUserClient = createClient(
-        Deno.env.get("PROJECT_URL") ?? "",
+        Deno.env.get("SUPABASE_URL") ?? "",
         Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       );
 
@@ -460,7 +478,7 @@ app.get(`/server/oauth/instagram/initiate`, async (c) => {
     console.log("Instagram OAuth initiation - User authenticated:", user.id);
 
     const clientId = Deno.env.get("FACEBOOK_APP_ID");
-    const redirectUri = `${Deno.env.get("PROJECT_URL")}/functions/v1/server/oauth/instagram/callback`;
+    const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/server/oauth/instagram/callback`;
 
     if (!clientId) {
       return c.json({ error: "Instagram OAuth not configured" }, 500);
@@ -492,13 +510,13 @@ app.get(`/server/oauth/instagram/callback`, async (c) => {
 
     if (error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'instagram', error: '${error}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "instagram", error: error ?? "" })}</script>`,
       );
     }
 
     if (!code || !state) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'instagram', error: 'Missing code or state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "instagram", error: "Missing code or state" })}</script>`,
       );
     }
 
@@ -506,7 +524,7 @@ app.get(`/server/oauth/instagram/callback`, async (c) => {
     const stateData = await kv.get(`oauth:state:${state}`);
     if (!stateData) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'instagram', error: 'Invalid state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "instagram", error: "Invalid state" })}</script>`,
       );
     }
 
@@ -522,7 +540,7 @@ app.get(`/server/oauth/instagram/callback`, async (c) => {
           client_id: Deno.env.get("FACEBOOK_APP_ID") ?? "",
           client_secret: Deno.env.get("FACEBOOK_APP_SECRET") ?? "",
           grant_type: "authorization_code",
-          redirect_uri: `${Deno.env.get("PROJECT_URL")}/functions/v1/server/oauth/instagram/callback`,
+          redirect_uri: `${Deno.env.get("SUPABASE_URL")}/functions/v1/server/oauth/instagram/callback`,
           code,
         }),
       },
@@ -532,7 +550,7 @@ app.get(`/server/oauth/instagram/callback`, async (c) => {
 
     if (tokenData.error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'instagram', error: '${tokenData.error.message}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "instagram", error: tokenData.error?.message ?? "Token exchange failed" })}</script>`,
       );
     }
 
@@ -554,12 +572,12 @@ app.get(`/server/oauth/instagram/callback`, async (c) => {
     await kv.del(`oauth:state:${state}`);
 
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-success', platform: 'instagram', username: '${profileData.username}' }, '*'); window.close();</script>`,
+      `<script>${oauthRedirectOnly({ success: true, platform: "instagram", username: profileData.username ?? "" })}</script>`,
     );
   } catch (err) {
     console.log("Instagram OAuth callback error:", err);
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'instagram', error: 'Callback failed' }, '*'); window.close();</script>`,
+      `<script>${oauthRedirectOnly({ success: false, platform: "instagram", error: "Callback failed" })}</script>`,
     );
   }
 });
@@ -575,7 +593,7 @@ app.get(`/server/oauth/facebook/initiate`, async (c) => {
     }
 
     const clientId = Deno.env.get("FACEBOOK_APP_ID");
-    const redirectUri = `${Deno.env.get("PROJECT_URL")}/functions/v1/server/oauth/facebook/callback`;
+    const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/server/oauth/facebook/callback`;
 
     if (!clientId) {
       return c.json({ error: "Facebook OAuth not configured" }, 500);
@@ -606,25 +624,25 @@ app.get(`/server/oauth/facebook/callback`, async (c) => {
 
     if (error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'facebook', error: '${error}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "facebook", error: error ?? "" })}</script>`,
       );
     }
 
     if (!code || !state) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'facebook', error: 'Missing code or state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "facebook", error: "Missing code or state" })}</script>`,
       );
     }
 
     const stateData = await kv.get(`oauth:state:${state}`);
     if (!stateData) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'facebook', error: 'Invalid state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "facebook", error: "Invalid state" })}</script>`,
       );
     }
 
     const { userId } = stateData;
-    const redirectUri = `${Deno.env.get("PROJECT_URL")}/functions/v1/server/oauth/facebook/callback`;
+    const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/server/oauth/facebook/callback`;
 
     // Exchange code for access token
     const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?client_id=${Deno.env.get("FACEBOOK_APP_ID")}&client_secret=${Deno.env.get("FACEBOOK_APP_SECRET")}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`;
@@ -633,7 +651,7 @@ app.get(`/server/oauth/facebook/callback`, async (c) => {
 
     if (tokenData.error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'facebook', error: '${tokenData.error.message}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "facebook", error: tokenData.error?.message ?? "Token exchange failed" })}</script>`,
       );
     }
 
@@ -654,12 +672,12 @@ app.get(`/server/oauth/facebook/callback`, async (c) => {
     await kv.del(`oauth:state:${state}`);
 
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-success', platform: 'facebook', username: '${profileData.name}' }, '*'); window.close();</script>`,
+      `<script>${oauthRedirectOnly({ success: true, platform: "facebook", username: profileData.name ?? "" })}</script>`,
     );
   } catch (err) {
     console.log("Facebook OAuth callback error:", err);
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'facebook', error: 'Callback failed' }, '*'); window.close();</script>`,
+      `<script>${oauthRedirectOnly({ success: false, platform: "facebook", error: "Callback failed" })}</script>`,
     );
   }
 });
@@ -722,25 +740,25 @@ app.get(`/server/oauth/twitter/callback`, async (c) => {
 
     if (error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'twitter', error: '${error}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "twitter", error: error ?? "" })}</script>`,
       );
     }
 
     if (!code || !state) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'twitter', error: 'Missing code or state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "twitter", error: "Missing code or state" })}</script>`,
       );
     }
 
     const stateData = await kv.get(`oauth:state:${state}`);
     if (!stateData) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'twitter', error: 'Invalid state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "twitter", error: "Invalid state" })}</script>`,
       );
     }
 
     const { userId, codeVerifier } = stateData;
-    const redirectUri = `${Deno.env.get("PROJECT_URL")}/functions/v1/server/oauth/twitter/callback`;
+    const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/server/oauth/twitter/callback`;
 
     // Exchange code for access token
     const authString = btoa(
@@ -768,7 +786,7 @@ app.get(`/server/oauth/twitter/callback`, async (c) => {
 
     if (tokenData.error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'twitter', error: '${tokenData.error}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "twitter", error: tokenData.error ?? "Token exchange failed" })}</script>`,
       );
     }
 
@@ -790,12 +808,12 @@ app.get(`/server/oauth/twitter/callback`, async (c) => {
     await kv.del(`oauth:state:${state}`);
 
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-success', platform: 'twitter', username: '@${profileData.data?.username}' }, '*'); window.close();</script>`,
+      `<script>${oauthRedirectOnly({ success: true, platform: "twitter", username: "@" + (profileData.data?.username ?? "") })}</script>`,
     );
   } catch (err) {
     console.log("Twitter OAuth callback error:", err);
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'twitter', error: 'Callback failed' }, '*'); window.close();</script>`,
+      `<script>${oauthRedirectOnly({ success: false, platform: "twitter", error: "Callback failed" })}</script>`,
     );
   }
 });
@@ -814,7 +832,7 @@ app.get(`/server/oauth/linkedin/initiate`, async (c) => {
     }
 
     const clientId = Deno.env.get("LINKEDIN_CLIENT_ID");
-    const supabaseUrl = Deno.env.get("PROJECT_URL");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
     console.log("Client ID:", clientId);
     console.log("Supabase URL:", supabaseUrl);
 
@@ -834,7 +852,7 @@ app.get(`/server/oauth/linkedin/initiate`, async (c) => {
     });
     console.log("State saved in KV");
 
-    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=r_liteprofile%20r_emailaddress%20w_member_social&state=${state}`;
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=r_liteprofile%20r_emailaddress&state=${state}`;
     console.log("Auth URL:", authUrl);
 
     return c.json({ authUrl, state });
@@ -853,25 +871,25 @@ app.get(`/server/oauth/linkedin/callback`, async (c) => {
 
     if (error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'linkedin', error: '${error}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "linkedin", error: error ?? "" })}</script>`,
       );
     }
 
     if (!code || !state) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'linkedin', error: 'Missing code or state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "linkedin", error: "Missing code or state" })}</script>`,
       );
     }
 
     const stateData = await kv.get(`oauth:state:${state}`);
     if (!stateData) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'linkedin', error: 'Invalid state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "linkedin", error: "Invalid state" })}</script>`,
       );
     }
 
     const { userId } = stateData;
-    const redirectUri = `${Deno.env.get("PROJECT_URL")}/functions/v1/server/oauth/linkedin/callback`;
+    const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/server/oauth/linkedin/callback`;
 
     // Exchange code for access token
     const tokenResponse = await fetch(
@@ -893,7 +911,7 @@ app.get(`/server/oauth/linkedin/callback`, async (c) => {
 
     if (tokenData.error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'linkedin', error: '${tokenData.error_description}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "linkedin", error: tokenData.error_description ?? "Token exchange failed" })}</script>`,
       );
     }
 
@@ -914,12 +932,12 @@ app.get(`/server/oauth/linkedin/callback`, async (c) => {
     await kv.del(`oauth:state:${state}`);
 
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-success', platform: 'linkedin', username: '${profileData.localizedFirstName} ${profileData.localizedLastName}' }, '*'); window.close();</script>`,
+      `<script>${oauthRedirectOnly({ success: true, platform: "linkedin", username: `${profileData.localizedFirstName ?? ""} ${profileData.localizedLastName ?? ""}`.trim() })}</script>`,
     );
   } catch (err) {
     console.log("LinkedIn OAuth callback error:", err);
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'linkedin', error: 'Callback failed' }, '*'); window.close();</script>`,
+      `<script>${oauthRedirectOnly({ success: false, platform: "linkedin", error: "Callback failed" })}</script>`,
     );
   }
 });
@@ -935,7 +953,7 @@ app.get(`/server/oauth/tiktok/initiate`, async (c) => {
     }
 
     const clientKey = Deno.env.get("TIKTOK_CLIENT_KEY");
-    const redirectUri = `${Deno.env.get("PROJECT_URL")}/functions/v1/server/oauth/tiktok/callback`;
+    const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/server/oauth/tiktok/callback`;
 
     if (!clientKey) {
       return c.json({ error: "TikTok OAuth not configured" }, 500);
@@ -966,20 +984,20 @@ app.get(`/server/oauth/tiktok/callback`, async (c) => {
 
     if (error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'tiktok', error: '${error}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "tiktok", error: error ?? "" })}</script>`,
       );
     }
 
     if (!code || !state) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'tiktok', error: 'Missing code or state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "tiktok", error: "Missing code or state" })}</script>`,
       );
     }
 
     const stateData = await kv.get(`oauth:state:${state}`);
     if (!stateData) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'tiktok', error: 'Invalid state' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "tiktok", error: "Invalid state" })}</script>`,
       );
     }
 
@@ -996,7 +1014,7 @@ app.get(`/server/oauth/tiktok/callback`, async (c) => {
           client_secret: Deno.env.get("TIKTOK_CLIENT_SECRET") ?? "",
           code,
           grant_type: "authorization_code",
-          redirect_uri: `${Deno.env.get("PROJECT_URL")}/functions/v1/server/oauth/tiktok/callback`,
+          redirect_uri: `${Deno.env.get("SUPABASE_URL")}/functions/v1/server/oauth/tiktok/callback`,
         }),
       },
     );
@@ -1005,7 +1023,7 @@ app.get(`/server/oauth/tiktok/callback`, async (c) => {
 
     if (tokenData.error) {
       return c.html(
-        `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'tiktok', error: '${tokenData.error}' }, '*'); window.close();</script>`,
+        `<script>${oauthRedirectOnly({ success: false, platform: "tiktok", error: tokenData.error ?? "Token exchange failed" })}</script>`,
       );
     }
 
@@ -1032,12 +1050,13 @@ app.get(`/server/oauth/tiktok/callback`, async (c) => {
     await kv.del(`oauth:state:${state}`);
 
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-success', platform: 'tiktok', username: '@${profileData.data?.user?.username || profileData.data?.user?.display_name}' }, '*'); window.close();</script>`,
+      // `<script>${oauthRedirectOnly({ success: true, platform: "tiktok", username: "@" + (profileData.data?.user?.username || profileData.data?.user?.display_name ?? "") })}</script>`,
+      `<script>${oauthRedirectOnly({ success: true, platform: "tiktok" })}</script>`,
     );
   } catch (err) {
     console.log("TikTok OAuth callback error:", err);
     return c.html(
-      `<script>window.opener.postMessage({ type: 'oauth-error', platform: 'tiktok', error: 'Callback failed' }, '*'); window.close();</script>`,
+      `<script>${oauthRedirectOnly({ success: false, platform: "tiktok", error: "Callback failed" })}</script>`,
     );
   }
 });
@@ -1720,7 +1739,7 @@ app.post(`/change-password`, async (c) => {
 
     // Verify current password by attempting to sign in
     const supabaseUserClient = createClient(
-      Deno.env.get("PROJECT_URL") ?? "",
+      Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
     );
 
