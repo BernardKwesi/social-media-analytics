@@ -12,6 +12,7 @@ import { Privacy } from "./components/privacy";
 import { TermsOfService } from "./components/terms";
 import { Header } from "./components/header";
 import { Navigation } from "./components/navigation";
+import { Footer } from "./components/footer";
 import { ProfileSettings } from "./components/profile-settings";
 import { projectId } from "@utils/supabase/info";
 
@@ -45,8 +46,8 @@ const PATH_TO_VIEW: Record<string, View> = {
 
 function PublicPageLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
         <Link
           to="/"
           className="inline-flex items-center text-sm text-purple-600 hover:text-purple-700 mb-6"
@@ -55,6 +56,7 @@ function PublicPageLayout({ children }: { children: ReactNode }) {
         </Link>
         {children}
       </main>
+      <Footer />
     </div>
   );
 }
@@ -215,34 +217,51 @@ function AppContent() {
   if (!user) {
     if (authMode === "login") {
       return (
-        <Login
-          onLogin={handleLogin}
-          onSwitchToSignup={() => setAuthMode("signup")}
-        />
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+          <main className="flex-1 flex items-center justify-center">
+            <Login
+              onLogin={handleLogin}
+              onSwitchToSignup={() => setAuthMode("signup")}
+            />
+          </main>
+          <Footer />
+        </div>
       );
     } else {
       return (
-        <Signup
-          onSignup={handleSignup}
-          onSwitchToLogin={() => setAuthMode("login")}
-        />
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+          <main className="flex-1 flex items-center justify-center">
+            <Signup
+              onSignup={handleSignup}
+              onSwitchToLogin={() => setAuthMode("login")}
+            />
+          </main>
+          <Footer />
+        </div>
       );
     }
   }
 
   if (showOnboarding) {
-    return <ConnectAccounts onComplete={handleOnboardingComplete} />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <main className="flex-1">
+          <ConnectAccounts onComplete={handleOnboardingComplete} />
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header
         onManageAccounts={handleManageAccounts}
         onOpenProfile={() => setShowProfileSettings(true)}
       />
       <Navigation />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {currentView === "dashboard" && (
           <Dashboard
             dateRange={dateRange}
@@ -265,6 +284,8 @@ function AppContent() {
 
         {currentView === "goals" && <Goals />}
       </main>
+
+      <Footer />
 
       {/* Profile Settings Modal */}
       {showProfileSettings && (

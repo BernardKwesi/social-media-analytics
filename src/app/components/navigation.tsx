@@ -1,13 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, TrendingUp, FileText, Target, Shield } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, FileText, Target } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/platform', label: 'Platforms', icon: TrendingUp },
   { path: '/reports', label: 'Reports', icon: FileText },
   { path: '/goals', label: 'Goals', icon: Target },
-  { path: '/privacy', label: 'Privacy', icon: Shield },
-  { path: '/terms', label: 'Terms', icon: FileText },
 ];
 
 export function Navigation() {

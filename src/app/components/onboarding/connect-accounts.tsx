@@ -209,8 +209,6 @@ export function ConnectAccounts({ onComplete }: ConnectAccountsProps) {
     try {
       // Request OAuth URL from backend
       const url = `https://${projectId}.supabase.co/functions/v1/server/oauth/${accountId}/initiate`;
-      console.log("OAuth initiation URL:", url);
-      console.log("Sending request with Authorization header...");
 
       const response = await fetch(url, {
         headers: {
@@ -218,9 +216,6 @@ export function ConnectAccounts({ onComplete }: ConnectAccountsProps) {
           apikey: publicAnonKey,
         },
       });
-
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
 
       if (!response.ok) {
         const errorText = await response.text();
